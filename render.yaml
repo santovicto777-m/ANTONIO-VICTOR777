@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: nota-site
+    runtime: python
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=. gunicorn --bind 0.0.0.0:$PORT run:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nota-site-db
+          property: connectionString
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+
+databases:
+  - name: nota-site-db
+    databaseName: nota_site
+    user: nota_site

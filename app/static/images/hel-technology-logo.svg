@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="title desc">
+  <title id="title">HEL Technology Service</title>
+  <desc id="desc">HEL Technology Service, Informática, Electricidade e Telecomunicações</desc>
+  <rect width="760" height="220" fill="#ffffff"/>
+  <g fill="none" stroke-linecap="round" stroke-width="18">
+    <path stroke="#0b5872" d="M83 35a74 74 0 0 1 72 11"/>
+    <path stroke="#0b5872" d="M58 62a105 105 0 0 1 111 21"/>
+    <path stroke="#e30620" d="M38 80a121 121 0 0 0 2 89"/>
+    <path stroke="#0b5872" d="M72 105a88 88 0 0 0 4 78"/>
+    <path stroke="#e30620" d="M104 91a55 55 0 0 0 3 82"/>
+    <path stroke="#0b5872" d="M104 62a54 54 0 0 1 56 13"/>
+  </g>
+  <text x="182" y="98" fill="#0b5872" font-family="Arial, Helvetica, sans-serif" font-size="53" font-weight="700" letter-spacing="-2">HEL TECHNOLOGY</text>
+  <text x="184" y="153" fill="#e30620" font-family="Arial, Helvetica, sans-serif" font-size="55" font-weight="700" letter-spacing="13">SERVICE</text>
+  <rect x="184" y="174" width="494" height="27" rx="13" fill="#0b5872"/>
+  <text x="202" y="193" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" letter-spacing="1.5">INFORMÁTICA | ELECTRICIDADE | TELECOMUNICAÇÕES</text>
+</svg>
