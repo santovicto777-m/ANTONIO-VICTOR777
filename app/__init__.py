@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
@@ -35,6 +37,7 @@ def create_app(config_class=Config):
         from app import models  # noqa: F401
         db.create_all()
         _seed_modules()
+        _bootstrap_admin()
 
     return app
 
@@ -52,3 +55,18 @@ def _seed_modules():
         for module in modules:
             ensure_assessments(module)
         db.session.commit()
+
+
+def _bootstrap_admin():
+    from app.models import User
+
+    username = os.getenv("ADMIN_USERNAME")
+    password = os.getenv("ADMIN_PASSWORD")
+    if not username or not password or User.query.filter_by(username=username).first():
+        return
+    if len(password) < 8:
+        raise ValueError("ADMIN_PASSWORD deve ter pelo menos 8 caracteres.")
+    admin = User(username=username, role="admin")
+    admin.set_password(password)
+    db.session.add(admin)
+    db.session.commit()
