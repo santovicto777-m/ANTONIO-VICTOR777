@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from flask import Flask, current_app
+from flask import Flask, current_app, request
 from flask_login import LoginManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -40,6 +40,13 @@ def create_app(config_class=Config):
         if app.config.get("REQUIRE_PERSISTENT_DATABASE") or app.config.get("SESSION_COOKIE_SECURE"):
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return response
+
+    @app.before_request
+    def restore_requested_profile_photo():
+        prefix = "/static/uploads/profile/"
+        if request.path.startswith(prefix):
+            filename = request.path[len(prefix):]
+            _restore_profile_photo_file(filename)
 
     from app.auth import auth_bp
     from app.main import main_bp
@@ -87,6 +94,25 @@ def _restore_profile_photos():
     upload_folder.mkdir(parents=True, exist_ok=True)
     for student in Student.query.filter(Student.profile_photo.is_not(None), Student.profile_photo_data.is_not(None)):
         photo_path = upload_folder / student.profile_photo
+        if not photo_path.exists():
+            photo_path.write_bytes(student.profile_photo_data)
+
+
+def _restore_profile_photo_file(filename):
+    from app.models import Student
+
+    if not filename or "/" in filename or "\\" in filename:
+        return
+    student = Student.query.filter_by(profile_photo=filename).first()
+    if not student or not student.profile_photo_data:
+        return
+    folders = {
+        Path(current_app.config.get("PROFILE_UPLOAD_FOLDER", Path(current_app.instance_path) / "profile_uploads")),
+        Path(current_app.static_folder) / "uploads" / "profile",
+    }
+    for upload_folder in folders:
+        upload_folder.mkdir(parents=True, exist_ok=True)
+        photo_path = upload_folder / filename
         if not photo_path.exists():
             photo_path.write_bytes(student.profile_photo_data)
 

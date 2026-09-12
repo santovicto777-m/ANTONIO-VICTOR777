@@ -55,6 +55,11 @@ def test_admin_can_upload_edit_and_delete_student(client, app, tmp_path):
         photo_name = student.profile_photo
         assert photo_name and (tmp_path / 'profiles' / photo_name).exists()
         student_id = student.id
+        (tmp_path / 'profiles' / photo_name).unlink()
+
+    restored_response = client.get(f'/static/uploads/profile/{photo_name}')
+    assert restored_response.status_code == 200
+    assert restored_response.data == b'fake image'
 
     client.post('/logout')
     login(client, 'carla', 'studentpass')
