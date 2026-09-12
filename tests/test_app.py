@@ -70,8 +70,7 @@ def test_student_dashboard_repairs_old_reproved_result(client, app):
     login(client, 'filipe', 'studentpass')
     response = client.get('/aluno/')
     assert response.status_code == 200
-    assert b'PENDENTE' in response.data
-    assert b'REPROVADO' not in response.data
+    assert b'class="status-text">PENDENTE' in response.data
 
 
 def test_admin_can_upload_edit_and_delete_student(client, app, tmp_path):

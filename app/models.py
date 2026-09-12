@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from flask_login import UserMixin
+from markupsafe import Markup
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login_manager
@@ -88,7 +89,18 @@ class Grade(db.Model):
 
     @property
     def display_value(self):
-        return "Pendente" if self.value is None else f"{Decimal(self.value):.1f}"
+        if self.value is None:
+            return "Pendente"
+        return Markup(f'<span class="{self.value_class}">{Decimal(self.value):.1f}</span>')
+
+    def __html__(self):
+        return self.display_value
+
+    @property
+    def value_class(self):
+        if self.value is None:
+            return ""
+        return "grade-positive" if Decimal(self.value) >= 10 else "grade-negative"
 
 
 class Complaint(db.Model):

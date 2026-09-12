@@ -21,6 +21,10 @@
   </main>
 </body>
 <script>
+  document.querySelectorAll('.status-text').forEach(function (status) {
+    if (status.textContent.trim() === 'APROVADO') status.classList.add('status-approved');
+    if (status.textContent.trim() === 'REPROVADO') status.classList.add('status-failed');
+  });
   document.querySelectorAll('form[method="post"], form[method="POST"]').forEach(function (form) {
     if (!form.querySelector('input[name="csrf_token"]')) {
       const input = document.createElement('input');

@@ -32,7 +32,7 @@ def dashboard():
     rows = []
     for module in modules:
         grades = [grade for grade in student.grades if grade.module_id == module.id and grade.published]
-        by_assessment = {grade.assessment.name: grade.display_value for grade in grades}
+        by_assessment = {grade.assessment.name: grade for grade in grades}
         complete = len(grades) == 4 and all(grade.value is not None for grade in grades)
         average = module_average(student.id, module.id) if complete else None
         rows.append((module, by_assessment, average))
