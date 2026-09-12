@@ -12,6 +12,10 @@ def login(client, username, password):
 
 
 def test_admin_can_create_student_and_student_cannot_access_admin(client, app):
+    security_response = client.get('/login')
+    assert security_response.headers['X-Content-Type-Options'] == 'nosniff'
+    assert security_response.headers['X-Frame-Options'] == 'SAMEORIGIN'
+    assert security_response.headers['Referrer-Policy'] == 'strict-origin-when-cross-origin'
     login(client, 'admin', 'adminpass123')
     response = client.post('/admin/alunos', data={'full_name': 'Ana Silva', 'code': 'A001', 'username': 'ana', 'password': 'studentpass'})
     assert response.status_code == 302

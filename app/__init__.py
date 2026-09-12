@@ -3,6 +3,9 @@ from pathlib import Path
 
 from flask import Flask, current_app
 from flask_login import LoginManager
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import inspect, text
@@ -12,6 +15,7 @@ from config import Config
 db = SQLAlchemy()
 login_manager = LoginManager()
 csrf = CSRFProtect()
+limiter = Limiter(key_func=get_remote_address, default_limits=[])
 login_manager.login_view = "auth.login"
 login_manager.login_message = "Inicie sessão para continuar."
 
@@ -19,11 +23,23 @@ login_manager.login_message = "Inicie sessão para continuar."
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     if app.config.get("REQUIRE_PERSISTENT_DATABASE") and app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
         raise RuntimeError("Configure DATABASE_URL com uma base PostgreSQL persistente antes de iniciar em produção.")
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
+
+    @app.after_request
+    def add_security_headers(response):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        if app.config.get("REQUIRE_PERSISTENT_DATABASE") or app.config.get("SESSION_COOKIE_SECURE"):
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return response
 
     from app.auth import auth_bp
     from app.main import main_bp

@@ -22,5 +22,8 @@ class Config:
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
     REMEMBER_COOKIE_HTTPONLY = True
     WTF_CSRF_TIME_LIMIT = 3600
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024
+    RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
+    RATELIMIT_HEADERS_ENABLED = True
     PROFILE_UPLOAD_FOLDER = str(BASE_DIR / "app" / "static" / "uploads" / "profile")
     PROFILE_ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}

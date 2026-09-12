@@ -33,6 +33,8 @@ Entre com o administrador, crie um aluno em **Alunos**, lance quatro notas em **
 pytest -q
 ```
 
+A aplicação inclui CSRF, cookies HTTP-only/SameSite, cabeçalhos de segurança, limite de 5 tentativas de login por minuto e limite de 5 MB por pedido. Em produção com vários workers, configure `RATELIMIT_STORAGE_URI` com um Redis partilhado para que o limite seja comum a todos os processos; sem essa variável, é usado armazenamento em memória por processo.
+
 A aplicação cria as tabelas automaticamente no primeiro arranque. Em produção, use PostgreSQL, HTTPS (`SESSION_COOKIE_SECURE=true`), uma `SECRET_KEY` forte e uma ferramenta de migrações como Flask-Migrate/Alembic antes de alterar o esquema.
 
 ## Publicar no Render
