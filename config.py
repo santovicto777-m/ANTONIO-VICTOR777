@@ -10,6 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-change-me")
     database_url = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'nota_site.db'}")
+    REQUIRE_PERSISTENT_DATABASE = os.getenv("RENDER", "").lower() == "true" or os.getenv("APP_ENV", "").lower() == "production"
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
     elif database_url.startswith("postgresql://"):

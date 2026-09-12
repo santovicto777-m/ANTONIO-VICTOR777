@@ -37,4 +37,4 @@ A aplicação cria as tabelas automaticamente no primeiro arranque. Em produçã
 
 ## Publicar no Render
 
-Envie o projeto para um repositório GitHub e crie um Blueprint no Render usando `render.yaml`. O Blueprint cria o serviço web e o PostgreSQL. O comando de arranque é `gunicorn --bind 0.0.0.0:$PORT run:app`. Depois do primeiro deploy, abra o Shell do serviço e execute `flask --app run.py create-admin --username admin`.
+Envie o projeto para um repositório GitHub e crie um Blueprint no Render usando `render.yaml`. O Blueprint cria o serviço web e o PostgreSQL persistente; confirme no painel do serviço que `DATABASE_URL` está configurada e que aponta para a base criada pelo Blueprint. Não use `sqlite:///nota_site.db` no serviço web do Render, porque esse ficheiro fica no disco temporário e pode desaparecer após um reinício ou novo deploy. O comando de arranque é `gunicorn --bind 0.0.0.0:$PORT run:app`. Depois do primeiro deploy, abra o Shell do serviço e execute `flask --app run.py create-admin --username admin`.

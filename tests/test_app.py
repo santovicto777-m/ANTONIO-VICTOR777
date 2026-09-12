@@ -4,6 +4,7 @@ from io import BytesIO
 from app import db
 from app.models import Assessment, Complaint, Grade, Module, Student, User
 from app.services import module_average
+from app import create_app
 
 
 def login(client, username, password):
@@ -106,3 +107,16 @@ def test_student_can_complain_about_published_grade_and_admin_can_respond(client
     client.post('/logout')
     login(client, 'diana', 'studentpass')
     assert b'A nota foi revista e mant' in client.get('/aluno/').data
+
+
+def test_production_rejects_sqlite_database():
+    class ProductionConfig:
+        TESTING = True
+        SECRET_KEY = 'test'
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///production.db'
+        SQLALCHEMY_TRACK_MODIFICATIONS = False
+        REQUIRE_PERSISTENT_DATABASE = True
+
+    import pytest
+    with pytest.raises(RuntimeError, match='PostgreSQL persistente'):
+        create_app(ProductionConfig)
