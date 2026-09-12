@@ -37,9 +37,24 @@ def enrollment():
             application.password_hash = generate_password_hash(password)
             db.session.add(application)
             db.session.commit()
-            flash("Inscrição enviada. Aguarde a análise da administração.", "success")
-            return redirect(url_for("auth.login"))
+            flash(f"Inscrição enviada com sucesso. Guarde o número {application.id:06d} para consultar o estado.", "success")
+            return redirect(url_for("auth.enrollment_status", application_id=application.id, email=email))
     return render_template("enrollment.html")
+
+
+@auth_bp.route("/inscricao/estado", methods=["GET", "POST"])
+def enrollment_status():
+    application = None
+    application_id = request.args.get("application_id", type=int)
+    email = request.args.get("email", "").strip().lower()
+    if request.method == "POST":
+        application_id = request.form.get("application_id", type=int)
+        email = request.form.get("email", "").strip().lower()
+    if application_id and email:
+        application = EnrollmentApplication.query.filter_by(id=application_id, email=email).first()
+        if not application:
+            flash("Não encontramos uma inscrição com esses dados.", "error")
+    return render_template("enrollment_status.html", application=application, application_id=application_id or "", email=email)
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])

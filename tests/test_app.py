@@ -177,11 +177,19 @@ def test_online_enrollment_is_pending_until_admin_approves(client, app):
         'residence': 'Luanda', 'birth_date': '2000-05-20',
     })
     assert response.status_code == 302
+    assert '/inscricao/estado?application_id=' in response.location
+    assert 'email=guilherme@example.com' in response.location
     with app.app_context():
         application = EnrollmentApplication.query.one()
         application_id = application.id
         assert application.status == 'PENDENTE'
         assert Student.query.count() == 0
+
+    status_response = client.post('/inscricao/estado', data={
+        'application_id': application_id, 'email': 'guilherme@example.com'
+    })
+    assert b'PENDENTE' in status_response.data
+    assert b'Ainda n' in status_response.data
 
     login(client, 'admin', 'adminpass123')
     dashboard = client.get('/admin/')
@@ -190,6 +198,11 @@ def test_online_enrollment_is_pending_until_admin_approves(client, app):
         'status': 'APROVADA', 'admin_note': 'Inscrição aprovada.'
     })
     assert response.status_code == 302
+    status_response = client.post('/inscricao/estado', data={
+        'application_id': application_id, 'email': 'guilherme@example.com'
+    })
+    assert b'APROVADA' in status_response.data
+    assert b'Inscri' in status_response.data
     with app.app_context():
         application = db.session.get(EnrollmentApplication, application_id)
         student = Student.query.one()

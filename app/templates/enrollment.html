@@ -6,7 +6,7 @@
     <p class="eyebrow">HEL TECHNOLOGY SERVICE</p>
     <h1>Inscrição online</h1>
     <p class="muted">Preencha o formulário para enviar o seu pedido de inscrição. A administração analisará os dados e enviará o acesso após a aprovação.</p>
-    <a href="{{ url_for('auth.login') }}">Já tem uma conta? Iniciar sessão</a>
+    <a href="{{ url_for('auth.enrollment_status') }}">Já enviou? Consultar estado da inscrição</a><br><a href="{{ url_for('auth.login') }}">Já tem uma conta? Iniciar sessão</a>
   </div>
   <form class="panel form-grid enrollment-form" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

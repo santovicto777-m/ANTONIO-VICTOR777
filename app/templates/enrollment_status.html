@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Estado da inscrição | Nota{% endblock %}
+{% block content %}
+<section class="status-shell">
+  <div class="enrollment-intro"><p class="eyebrow">ACOMPANHAMENTO</p><h1>Estado da inscrição</h1><p class="muted">Consulte o andamento do seu pedido usando o número da inscrição e o e-mail informado no formulário.</p><a href="{{ url_for('auth.enrollment') }}">Voltar para inscrição online</a></div>
+  <form class="panel form-grid" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><h2>Consultar pedido</h2><label>Número da inscrição<input name="application_id" value="{{ application_id }}" inputmode="numeric" required placeholder="Ex.: 000001"></label><label>E-mail usado na inscrição<input type="email" name="email" value="{{ email }}" required></label><button class="button primary">Consultar estado</button></form>
+</section>
+{% if application %}<section class="panel status-result"><div class="section-head"><div><p class="eyebrow">PEDIDO Nº {{ '%06d'|format(application.id) }}</p><h2>{{ application.full_name }}</h2><p class="muted">{{ application.course }}</p></div><span class="tag {{ 'ok' if application.status == 'APROVADA' else 'off' if application.status == 'REJEITADA' else '' }}">{{ application.status }}</span></div><div class="status-message"><strong>Mensagem da administração</strong>{% if application.admin_note %}<p>{{ application.admin_note }}</p>{% else %}<p class="muted">Ainda não há nenhuma mensagem. O pedido continua em análise.</p>{% endif %}</div>{% if application.reviewed_at %}<small>Última atualização: {{ application.reviewed_at.strftime('%d/%m/%Y às %H:%M') }}</small>{% endif %}</section>{% endif %}
+{% endblock %}
