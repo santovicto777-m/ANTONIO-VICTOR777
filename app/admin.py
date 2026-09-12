@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from app import db
 from app.decorators import admin_required
-from app.models import AuditLog, Assessment, Complaint, FinalResult, Grade, Module, Student, User
+from app.models import AuditLog, Assessment, Complaint, EnrollmentApplication, FinalResult, Grade, Module, Student, User
 from app.services import ensure_assessments, module_average, refresh_result
 
 admin_bp = Blueprint("admin", __name__)
@@ -67,9 +67,10 @@ def dashboard():
     approved = sum(result.status == "APROVADO" for result in results)
     failed = sum(result.status == "REPROVADO" for result in results)
     pending = max(len(results) - approved - failed, 0)
+    applications = EnrollmentApplication.query.filter_by(status="PENDENTE").count()
     return render_template("admin/dashboard.html", students=students, modules=modules, grades=grades,
                            approved=approved, failed=failed, pending=pending,
-                           result_total=len(results))
+                           result_total=len(results), applications=applications)
 
 
 @admin_bp.route("/alunos", methods=["GET", "POST"])
@@ -339,6 +340,44 @@ def export_pdf():
 @admin_required
 def audit():
     return render_template("admin/audit.html", logs=AuditLog.query.order_by(AuditLog.created_at.desc()).limit(100).all())
+
+
+@admin_bp.get("/inscricoes")
+@admin_required
+def enrollment_applications():
+    applications = EnrollmentApplication.query.order_by(EnrollmentApplication.created_at.desc()).all()
+    return render_template("admin/enrollment_applications.html", applications=applications)
+
+
+@admin_bp.post("/inscricoes/<int:application_id>/estado")
+@admin_required
+def update_enrollment(application_id):
+    application = db.get_or_404(EnrollmentApplication, application_id)
+    status = request.form.get("status", "").strip()
+    note = request.form.get("admin_note", "").strip()
+    if status not in {"PENDENTE", "APROVADA", "REJEITADA"}:
+        flash("Estado de inscrição inválido.", "error")
+    elif status == "APROVADA":
+        if User.query.filter_by(username=application.username).first():
+            flash("O nome de utilizador desta inscrição já está em uso.", "error")
+        else:
+            code = f"AL{application.id:05d}"
+            user = User(username=application.username, password_hash=application.password_hash, role="student")
+            student = Student(code=code, full_name=application.full_name, birth_date=application.birth_date,
+                              gender=application.gender, phone=application.phone, email=application.email, user=user)
+            db.session.add(student)
+            application.status = "APROVADA"
+            application.admin_note = note or None
+            application.reviewed_at = datetime.utcnow()
+            db.session.commit()
+            flash(f"Inscrição aprovada. Código do aluno: {code}.", "success")
+    else:
+        application.status = status
+        application.admin_note = note or None
+        application.reviewed_at = datetime.utcnow() if status == "REJEITADA" else None
+        db.session.commit()
+        flash("Inscrição atualizada.", "success")
+    return redirect(url_for("admin.enrollment_applications"))
 
 
 @admin_bp.get("/reclamacoes")

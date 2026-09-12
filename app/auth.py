@@ -1,10 +1,36 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_user, logout_user
+from werkzeug.security import generate_password_hash
 
-from app.models import User
+from app.models import EnrollmentApplication, User
 from app import db, limiter
 
 auth_bp = Blueprint("auth", __name__)
+
+
+@auth_bp.route("/inscricao", methods=["GET", "POST"])
+def enrollment():
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        phone = request.form.get("phone", "").strip()
+        course = request.form.get("course", "").strip()
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        if not full_name or not email or not phone or not course or not username or len(password) < 8:
+            flash("Preencha todos os campos obrigatórios e use uma password com pelo menos 8 caracteres.", "error")
+        elif User.query.filter_by(username=username).first() or EnrollmentApplication.query.filter_by(username=username, status="PENDENTE").first():
+            flash("Este nome de utilizador já está em uso.", "error")
+        else:
+            application = EnrollmentApplication(full_name=full_name, email=email, phone=phone,
+                                                birth_date=None, gender=request.form.get("gender") or None,
+                                                course=course, username=username)
+            application.password_hash = generate_password_hash(password)
+            db.session.add(application)
+            db.session.commit()
+            flash("Inscrição enviada. Aguarde a análise da administração.", "success")
+            return redirect(url_for("auth.login"))
+    return render_template("enrollment.html")
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])

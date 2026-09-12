@@ -2,7 +2,7 @@ from decimal import Decimal
 from io import BytesIO
 
 from app import db
-from app.models import Assessment, Complaint, FinalResult, Grade, Module, Student, User
+from app.models import Assessment, Complaint, EnrollmentApplication, FinalResult, Grade, Module, Student, User
 from app.services import module_average, refresh_result
 from app import create_app
 
@@ -167,3 +167,33 @@ def test_production_rejects_sqlite_database():
     import pytest
     with pytest.raises(RuntimeError, match='PostgreSQL persistente'):
         create_app(ProductionConfig)
+
+
+def test_online_enrollment_is_pending_until_admin_approves(client, app):
+    response = client.post('/inscricao', data={
+        'full_name': 'Guilherme Mendes', 'email': 'guilherme@example.com',
+        'phone': '935730700', 'course': 'Informática', 'username': 'guilherme',
+        'password': 'candidatepass', 'gender': 'Masculino',
+    })
+    assert response.status_code == 302
+    with app.app_context():
+        application = EnrollmentApplication.query.one()
+        application_id = application.id
+        assert application.status == 'PENDENTE'
+        assert Student.query.count() == 0
+
+    login(client, 'admin', 'adminpass123')
+    response = client.post(f'/admin/inscricoes/{application_id}/estado', data={
+        'status': 'APROVADA', 'admin_note': 'Inscrição aprovada.'
+    })
+    assert response.status_code == 302
+    with app.app_context():
+        application = db.session.get(EnrollmentApplication, application_id)
+        student = Student.query.one()
+        assert application.status == 'APROVADA'
+        assert student.code == f'AL{application_id:05d}'
+        assert student.user.username == 'guilherme'
+
+    client.post('/logout')
+    login(client, 'guilherme', 'candidatepass')
+    assert client.get('/aluno/').status_code == 200

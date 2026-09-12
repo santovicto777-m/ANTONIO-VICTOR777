@@ -52,6 +52,23 @@ class Student(db.Model):
     complaints = db.relationship("Complaint", back_populates="student", cascade="all, delete-orphan")
 
 
+class EnrollmentApplication(db.Model):
+    __tablename__ = "enrollment_applications"
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(150), nullable=False)
+    email = db.Column(db.String(150), nullable=False)
+    phone = db.Column(db.String(40), nullable=False)
+    birth_date = db.Column(db.Date)
+    gender = db.Column(db.String(30))
+    course = db.Column(db.String(120), nullable=False)
+    username = db.Column(db.String(80), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="PENDENTE")
+    admin_note = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    reviewed_at = db.Column(db.DateTime)
+
+
 class Module(db.Model):
     __tablename__ = "modules"
     id = db.Column(db.Integer, primary_key=True)
