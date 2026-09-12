@@ -184,6 +184,8 @@ def test_online_enrollment_is_pending_until_admin_approves(client, app):
         assert Student.query.count() == 0
 
     login(client, 'admin', 'adminpass123')
+    dashboard = client.get('/admin/')
+    assert b'Ver inscri' in dashboard.data
     response = client.post(f'/admin/inscricoes/{application_id}/estado', data={
         'status': 'APROVADA', 'admin_note': 'Inscrição aprovada.'
     })
