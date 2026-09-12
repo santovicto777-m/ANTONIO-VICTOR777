@@ -3,7 +3,7 @@ from io import BytesIO
 
 from app import db
 from app.models import Assessment, Complaint, Grade, Module, Student, User
-from app.services import module_average
+from app.services import module_average, refresh_result
 from app import create_app
 
 
@@ -39,6 +39,23 @@ def test_weighted_average_and_unpublished_visibility(client, app):
         assert module_average(student.id, module.id) == Decimal('15.80')
     login(client, 'bruno', 'studentpass')
     assert b'15.80' in client.get('/aluno/').data
+
+
+def test_result_stays_pending_until_all_active_modules_are_complete(app):
+    with app.app_context():
+        user = User(username='eva', role='student'); user.set_password('studentpass')
+        student = Student(code='E001', full_name='Eva Silva', user=user)
+        first = Module(name='Primeiro')
+        second = Module(name='Segundo')
+        db.session.add_all([user, student, first, second]); db.session.flush()
+        first_assessments = [Assessment(module=first, name=name, weight=weight) for name, weight in [('Avaliação 1', 20), ('Avaliação 2', 20), ('Avaliação 3', 20), ('Prova Final', 40)]]
+        second_assessments = [Assessment(module=second, name=name, weight=weight) for name, weight in [('Avaliação 1', 20), ('Avaliação 2', 20), ('Avaliação 3', 20), ('Prova Final', 40)]]
+        db.session.add_all(first_assessments + second_assessments); db.session.flush()
+        db.session.add_all([Grade(student=student, module=first, assessment=assessment, value=5) for assessment in first_assessments])
+        result = refresh_result(student)
+        db.session.commit()
+        assert result.status == 'PENDENTE'
+        assert result.average is None
 
 
 def test_admin_can_upload_edit_and_delete_student(client, app, tmp_path):

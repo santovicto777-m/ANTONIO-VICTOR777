@@ -1,26 +1,27 @@
 from decimal import Decimal
 
 from app import db
-from app.models import Assessment, FinalResult, Grade
+from app.models import Assessment, FinalResult, Grade, Module
 
 
 def module_average(student_id, module_id):
-    grades = Grade.query.filter_by(student_id=student_id, module_id=module_id).all()
-    if not grades or any(grade.value is None for grade in grades):
+    assessments = Assessment.query.filter_by(module_id=module_id).all()
+    grades = {grade.assessment_id: grade for grade in Grade.query.filter_by(student_id=student_id, module_id=module_id).all()}
+    if not assessments or any(assessment.id not in grades or grades[assessment.id].value is None for assessment in assessments):
         return None
-    total = sum((Decimal(grade.value) * Decimal(grade.assessment.weight) / Decimal(100)) for grade in grades)
+    total = sum((Decimal(grades[assessment.id].value) * Decimal(assessment.weight) / Decimal(100)) for assessment in assessments)
     return total.quantize(Decimal("0.01"))
 
 
 def refresh_result(student):
-    module_ids = {grade.module_id for grade in student.grades}
+    module_ids = [module.id for module in Module.query.filter_by(active=True).all()]
     averages = [module_average(student.id, module_id) for module_id in module_ids]
-    averages = [average for average in averages if average is not None]
+    complete = bool(averages) and all(average is not None for average in averages)
     result = FinalResult.query.filter_by(student_id=student.id).first()
     if not result:
         result = FinalResult(student_id=student.id)
         db.session.add(result)
-    result.average = (sum(averages) / len(averages)).quantize(Decimal("0.01")) if averages else None
+    result.average = (sum(averages) / len(averages)).quantize(Decimal("0.01")) if complete else None
     result.status = "APROVADO" if result.average is not None and result.average >= 10 else ("REPROVADO" if result.average is not None else "PENDENTE")
     return result
 
