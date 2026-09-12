@@ -6,7 +6,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.decorators import student_required
 from app.models import Complaint, FinalResult, Grade, Module, Student
-from app.services import module_average
+from app.services import module_average, refresh_result
 
 student_bp = Blueprint("student", __name__)
 
@@ -26,6 +26,8 @@ def profile_photo(student_id):
 @student_required
 def dashboard():
     student = current_user.student
+    result = refresh_result(student)
+    db.session.commit()
     modules = Module.query.filter_by(active=True).order_by(Module.name).all()
     rows = []
     for module in modules:
@@ -34,7 +36,6 @@ def dashboard():
         complete = len(grades) == 4 and all(grade.value is not None for grade in grades)
         average = module_average(student.id, module.id) if complete else None
         rows.append((module, by_assessment, average))
-    result = FinalResult.query.filter_by(student_id=student.id).first()
     published_grades = Grade.query.filter_by(student_id=student.id, published=True).order_by(Grade.updated_at.desc()).all()
     complaints = Complaint.query.filter_by(student_id=student.id).order_by(Complaint.created_at.desc()).all()
     return render_template("student/dashboard.html", student=student, rows=rows, result=result,

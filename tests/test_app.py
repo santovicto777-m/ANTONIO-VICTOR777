@@ -2,7 +2,7 @@ from decimal import Decimal
 from io import BytesIO
 
 from app import db
-from app.models import Assessment, Complaint, Grade, Module, Student, User
+from app.models import Assessment, Complaint, FinalResult, Grade, Module, Student, User
 from app.services import module_average, refresh_result
 from app import create_app
 
@@ -56,6 +56,22 @@ def test_result_stays_pending_until_all_active_modules_are_complete(app):
         db.session.commit()
         assert result.status == 'PENDENTE'
         assert result.average is None
+
+
+def test_student_dashboard_repairs_old_reproved_result(client, app):
+    with app.app_context():
+        user = User(username='filipe', role='student'); user.set_password('studentpass')
+        student = Student(code='F001', full_name='Filipe Costa', user=user)
+        module = Module(name='Módulo incompleto')
+        db.session.add_all([user, student, module]); db.session.flush()
+        db.session.add(FinalResult(student_id=student.id, average=8, status='REPROVADO'))
+        db.session.commit()
+
+    login(client, 'filipe', 'studentpass')
+    response = client.get('/aluno/')
+    assert response.status_code == 200
+    assert b'PENDENTE' in response.data
+    assert b'REPROVADO' not in response.data
 
 
 def test_admin_can_upload_edit_and_delete_student(client, app, tmp_path):

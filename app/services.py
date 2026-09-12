@@ -22,7 +22,7 @@ def refresh_result(student):
         result = FinalResult(student_id=student.id)
         db.session.add(result)
     result.average = (sum(averages) / len(averages)).quantize(Decimal("0.01")) if complete else None
-    result.status = "APROVADO" if result.average is not None and result.average >= 10 else ("REPROVADO" if result.average is not None else "PENDENTE")
+    result.status = "APROVADO" if complete and result.average >= 10 else ("REPROVADO" if complete else "PENDENTE")
     return result
 
 
