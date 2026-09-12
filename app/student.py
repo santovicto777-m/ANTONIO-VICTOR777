@@ -1,12 +1,25 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import current_user
+from io import BytesIO
+
+from flask import abort, Blueprint, flash, redirect, render_template, request, send_file, url_for
+from flask_login import current_user, login_required
 
 from app import db
 from app.decorators import student_required
-from app.models import Complaint, FinalResult, Grade, Module
+from app.models import Complaint, FinalResult, Grade, Module, Student
 from app.services import module_average
 
 student_bp = Blueprint("student", __name__)
+
+
+@student_bp.get("/foto/<int:student_id>")
+@login_required
+def profile_photo(student_id):
+    student = db.get_or_404(Student, student_id)
+    if not current_user.is_admin and current_user.student.id != student.id:
+        abort(403)
+    if not student.profile_photo_data:
+        abort(404)
+    return send_file(BytesIO(student.profile_photo_data), mimetype=student.profile_photo_mimetype or "application/octet-stream")
 
 
 @student_bp.get("/")

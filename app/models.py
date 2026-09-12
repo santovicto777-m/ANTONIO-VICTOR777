@@ -43,6 +43,8 @@ class Student(db.Model):
     phone = db.Column(db.String(40))
     email = db.Column(db.String(150))
     profile_photo = db.Column(db.String(255))
+    profile_photo_data = db.Column(db.LargeBinary)
+    profile_photo_mimetype = db.Column(db.String(100))
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False)
     user = db.relationship("User", back_populates="student")
     grades = db.relationship("Grade", back_populates="student", cascade="all, delete-orphan")

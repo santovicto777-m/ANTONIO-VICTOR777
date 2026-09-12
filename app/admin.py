@@ -26,7 +26,8 @@ def _save_profile_photo(file):
     upload_folder = Path(current_app.config.get("PROFILE_UPLOAD_FOLDER", Path(current_app.instance_path) / "profile_uploads"))
     upload_folder.mkdir(parents=True, exist_ok=True)
     file.save(upload_folder / secure_filename(filename))
-    return filename
+    file.stream.seek(0)
+    return filename, file.stream.read(), file.mimetype
 
 
 def _remove_profile_photo(filename):
@@ -86,9 +87,11 @@ def students():
         else:
             user = User(username=username, role="student")
             user.set_password(password)
+            photo_data = _save_profile_photo(photo)
             student = Student(code=code, full_name=name, birth_date=None, gender=request.form.get("gender"),
-                              phone=request.form.get("phone"), email=request.form.get("email"),
-                              profile_photo=_save_profile_photo(photo), user=user)
+                              phone=request.form.get("phone"), email=request.form.get("email"), user=user)
+            if photo_data:
+                student.profile_photo, student.profile_photo_data, student.profile_photo_mimetype = photo_data
             db.session.add(student)
             db.session.commit()
             flash("Aluno criado com sucesso.", "success")
@@ -128,7 +131,7 @@ def edit_student(student_id):
             new_photo = _save_profile_photo(photo)
             if new_photo:
                 _remove_profile_photo(student.profile_photo)
-                student.profile_photo = new_photo
+                student.profile_photo, student.profile_photo_data, student.profile_photo_mimetype = new_photo
             student.full_name = name
             student.code = code
             student.email = request.form.get("email", "").strip() or None

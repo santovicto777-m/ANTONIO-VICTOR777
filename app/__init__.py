@@ -1,6 +1,7 @@
 import os
+from pathlib import Path
 
-from flask import Flask
+from flask import Flask, current_app
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
@@ -40,6 +41,7 @@ def create_app(config_class=Config):
         from app import models  # noqa: F401
         db.create_all()
         _ensure_schema()
+        _restore_profile_photos()
         _seed_modules()
         _bootstrap_admin()
 
@@ -48,9 +50,29 @@ def create_app(config_class=Config):
 
 def _ensure_schema():
     columns = {column["name"] for column in inspect(db.engine).get_columns("students")}
+    statements = []
     if "profile_photo" not in columns:
+        statements.append("ALTER TABLE students ADD COLUMN profile_photo VARCHAR(255)")
+    if "profile_photo_data" not in columns:
+        photo_type = "BYTEA" if db.engine.dialect.name == "postgresql" else "BLOB"
+        statements.append(f"ALTER TABLE students ADD COLUMN profile_photo_data {photo_type}")
+    if "profile_photo_mimetype" not in columns:
+        statements.append("ALTER TABLE students ADD COLUMN profile_photo_mimetype VARCHAR(100)")
+    if statements:
         with db.engine.begin() as connection:
-            connection.execute(text("ALTER TABLE students ADD COLUMN profile_photo VARCHAR(255)"))
+            for statement in statements:
+                connection.execute(text(statement))
+
+
+def _restore_profile_photos():
+    from app.models import Student
+
+    upload_folder = Path(current_app.config.get("PROFILE_UPLOAD_FOLDER", Path(current_app.instance_path) / "profile_uploads"))
+    upload_folder.mkdir(parents=True, exist_ok=True)
+    for student in Student.query.filter(Student.profile_photo.is_not(None), Student.profile_photo_data.is_not(None)):
+        photo_path = upload_folder / student.profile_photo
+        if not photo_path.exists():
+            photo_path.write_bytes(student.profile_photo_data)
 
 
 def _seed_modules():
