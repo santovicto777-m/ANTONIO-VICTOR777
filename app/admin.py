@@ -64,9 +64,12 @@ def dashboard():
     modules = Module.query.filter_by(active=True).count()
     grades = Grade.query.filter(Grade.value.is_not(None)).count()
     results = FinalResult.query.all()
+    approved = sum(result.status == "APROVADO" for result in results)
+    failed = sum(result.status == "REPROVADO" for result in results)
+    pending = max(len(results) - approved - failed, 0)
     return render_template("admin/dashboard.html", students=students, modules=modules, grades=grades,
-                           approved=sum(result.status == "APROVADO" for result in results),
-                           failed=sum(result.status == "REPROVADO" for result in results))
+                           approved=approved, failed=failed, pending=pending,
+                           result_total=len(results))
 
 
 @admin_bp.route("/alunos", methods=["GET", "POST"])
