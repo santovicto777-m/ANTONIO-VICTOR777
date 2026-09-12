@@ -1,16 +1,39 @@
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from uuid import uuid4
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for, send_file
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for, send_file
 from flask_login import current_user
 from sqlalchemy import or_
+from werkzeug.utils import secure_filename
 
 from app import db
 from app.decorators import admin_required
-from app.models import AuditLog, Assessment, FinalResult, Grade, Module, Student, User
+from app.models import AuditLog, Assessment, Complaint, FinalResult, Grade, Module, Student, User
 from app.services import ensure_assessments, module_average, refresh_result
 
 admin_bp = Blueprint("admin", __name__)
+
+
+def _save_profile_photo(file):
+    if not file or not file.filename:
+        return None
+    extension = Path(file.filename).suffix.lower().lstrip(".")
+    if extension not in current_app.config.get("PROFILE_ALLOWED_EXTENSIONS", {"jpg", "jpeg", "png", "webp"}):
+        return None
+    filename = f"{uuid4().hex}.{extension}"
+    upload_folder = Path(current_app.config.get("PROFILE_UPLOAD_FOLDER", Path(current_app.instance_path) / "profile_uploads"))
+    upload_folder.mkdir(parents=True, exist_ok=True)
+    file.save(upload_folder / secure_filename(filename))
+    return filename
+
+
+def _remove_profile_photo(filename):
+    if filename:
+        upload_folder = current_app.config.get("PROFILE_UPLOAD_FOLDER", Path(current_app.instance_path) / "profile_uploads")
+        path = Path(upload_folder) / filename
+        path.unlink(missing_ok=True)
 
 
 def _number(value):
@@ -53,15 +76,19 @@ def students():
         password = request.form.get("password", "")
         code = request.form.get("code", "").strip()
         name = request.form.get("full_name", "").strip()
+        photo = request.files.get("profile_photo")
         if not username or not password or len(password) < 8 or not code or not name:
             flash("Preencha nome, código, utilizador e uma password com 8 caracteres.", "error")
+        elif photo and photo.filename and Path(photo.filename).suffix.lower().lstrip(".") not in current_app.config.get("PROFILE_ALLOWED_EXTENSIONS", {"jpg", "jpeg", "png", "webp"}):
+            flash("A foto deve estar no formato JPG, PNG ou WEBP.", "error")
         elif User.query.filter_by(username=username).first() or Student.query.filter_by(code=code).first():
             flash("O utilizador ou código já existe.", "error")
         else:
             user = User(username=username, role="student")
             user.set_password(password)
             student = Student(code=code, full_name=name, birth_date=None, gender=request.form.get("gender"),
-                              phone=request.form.get("phone"), email=request.form.get("email"), user=user)
+                              phone=request.form.get("phone"), email=request.form.get("email"),
+                              profile_photo=_save_profile_photo(photo), user=user)
             db.session.add(student)
             db.session.commit()
             flash("Aluno criado com sucesso.", "success")
@@ -77,6 +104,58 @@ def toggle_student(student_id):
     student = db.get_or_404(Student, student_id)
     student.user.active = not student.user.active
     db.session.commit()
+    return redirect(url_for("admin.students"))
+
+
+@admin_bp.route("/alunos/<int:student_id>/editar", methods=["GET", "POST"])
+@admin_required
+def edit_student(student_id):
+    student = db.get_or_404(Student, student_id)
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        code = request.form.get("code", "").strip()
+        name = request.form.get("full_name", "").strip()
+        duplicate_user = User.query.filter(User.username == username, User.id != student.user_id).first()
+        duplicate_code = Student.query.filter(Student.code == code, Student.id != student.id).first()
+        photo = request.files.get("profile_photo")
+        if not username or not code or not name:
+            flash("Preencha nome, código e utilizador.", "error")
+        elif duplicate_user or duplicate_code:
+            flash("O utilizador ou código já existe.", "error")
+        elif photo and photo.filename and Path(photo.filename).suffix.lower().lstrip(".") not in current_app.config.get("PROFILE_ALLOWED_EXTENSIONS", {"jpg", "jpeg", "png", "webp"}):
+            flash("A foto deve estar no formato JPG, PNG ou WEBP.", "error")
+        else:
+            new_photo = _save_profile_photo(photo)
+            if new_photo:
+                _remove_profile_photo(student.profile_photo)
+                student.profile_photo = new_photo
+            student.full_name = name
+            student.code = code
+            student.email = request.form.get("email", "").strip() or None
+            student.phone = request.form.get("phone", "").strip() or None
+            student.gender = request.form.get("gender", "").strip() or None
+            student.user.username = username
+            password = request.form.get("password", "")
+            if password:
+                if len(password) < 8:
+                    flash("A password deve ter pelo menos 8 caracteres.", "error")
+                    return render_template("admin/edit_student.html", student=student)
+                student.user.set_password(password)
+            db.session.commit()
+            flash("Dados do aluno atualizados.", "success")
+            return redirect(url_for("admin.students"))
+    return render_template("admin/edit_student.html", student=student)
+
+
+@admin_bp.post("/alunos/<int:student_id>/eliminar")
+@admin_required
+def delete_student(student_id):
+    student = db.get_or_404(Student, student_id)
+    _remove_profile_photo(student.profile_photo)
+    FinalResult.query.filter_by(student_id=student.id).delete(synchronize_session=False)
+    db.session.delete(student)
+    db.session.commit()
+    flash("Aluno eliminado.", "success")
     return redirect(url_for("admin.students"))
 
 
@@ -254,3 +333,28 @@ def export_pdf():
 @admin_required
 def audit():
     return render_template("admin/audit.html", logs=AuditLog.query.order_by(AuditLog.created_at.desc()).limit(100).all())
+
+
+@admin_bp.get("/reclamacoes")
+@admin_required
+def complaints():
+    complaints = Complaint.query.order_by(Complaint.created_at.desc()).all()
+    return render_template("admin/complaints.html", complaints=complaints)
+
+
+@admin_bp.post("/reclamacoes/<int:complaint_id>")
+@admin_required
+def update_complaint(complaint_id):
+    complaint = db.get_or_404(Complaint, complaint_id)
+    status = request.form.get("status", "").strip()
+    response = request.form.get("admin_response", "").strip()
+    if status not in {"ABERTA", "EM_ANALISE", "RESPONDIDA", "ENCERRADA"}:
+        flash("Estado de reclamação inválido.", "error")
+    elif not response and status in {"RESPONDIDA", "ENCERRADA"}:
+        flash("Escreva uma resposta antes de concluir a reclamação.", "error")
+    else:
+        complaint.status = status
+        complaint.admin_response = response or None
+        db.session.commit()
+        flash("Reclamação atualizada.", "success")
+    return redirect(url_for("admin.complaints"))

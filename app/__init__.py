@@ -4,6 +4,7 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
+from sqlalchemy import inspect, text
 
 from config import Config
 
@@ -36,10 +37,18 @@ def create_app(config_class=Config):
     with app.app_context():
         from app import models  # noqa: F401
         db.create_all()
+        _ensure_schema()
         _seed_modules()
         _bootstrap_admin()
 
     return app
+
+
+def _ensure_schema():
+    columns = {column["name"] for column in inspect(db.engine).get_columns("students")}
+    if "profile_photo" not in columns:
+        with db.engine.begin() as connection:
+            connection.execute(text("ALTER TABLE students ADD COLUMN profile_photo VARCHAR(255)"))
 
 
 def _seed_modules():

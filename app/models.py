@@ -42,9 +42,11 @@ class Student(db.Model):
     gender = db.Column(db.String(30))
     phone = db.Column(db.String(40))
     email = db.Column(db.String(150))
+    profile_photo = db.Column(db.String(255))
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False)
     user = db.relationship("User", back_populates="student")
     grades = db.relationship("Grade", back_populates="student", cascade="all, delete-orphan")
+    complaints = db.relationship("Complaint", back_populates="student", cascade="all, delete-orphan")
 
 
 class Module(db.Model):
@@ -79,11 +81,26 @@ class Grade(db.Model):
     student = db.relationship("Student", back_populates="grades")
     module = db.relationship("Module", back_populates="grades")
     assessment = db.relationship("Assessment", back_populates="grades")
+    complaints = db.relationship("Complaint", back_populates="grade", cascade="all, delete-orphan")
     __table_args__ = (db.UniqueConstraint("student_id", "assessment_id"),)
 
     @property
     def display_value(self):
         return "Pendente" if self.value is None else f"{Decimal(self.value):.1f}"
+
+
+class Complaint(db.Model):
+    __tablename__ = "complaints"
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
+    grade_id = db.Column(db.Integer, db.ForeignKey("grades.id"), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="ABERTA")
+    admin_response = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    student = db.relationship("Student", back_populates="complaints")
+    grade = db.relationship("Grade", back_populates="complaints")
 
 
 class FinalResult(db.Model):

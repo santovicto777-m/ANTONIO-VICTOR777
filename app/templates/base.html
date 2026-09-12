@@ -8,15 +8,16 @@
 </head>
 <body>
   {% if current_user.is_authenticated %}
-  <aside class="sidebar"><a class="brand" href="{{ url_for('main.index') }}"><img src="{{ url_for('static', filename='images/hel-technology-logo.svg', v='20260907') }}" alt="HEL Technology Service"><span class="brand-system">NOTA · Gestão académica</span></a>
+  <aside class="sidebar"><a class="brand" href="{{ url_for('main.index') }}"><img src="{{ url_for('static', filename='images/HTS HELMANO1.png', v='20260912') }}" alt="HEL Technology Service"><span class="brand-system">NOTA · Gestão académica</span></a>
     <p class="eyebrow">{{ 'ADMINISTRAÇÃO' if current_user.is_admin else 'ÁREA DO ALUNO' }}</p>
-    <nav>{% if current_user.is_admin %}<a href="{{ url_for('admin.dashboard') }}">Dashboard</a><a href="{{ url_for('admin.students') }}">Alunos</a><a href="{{ url_for('admin.modules') }}">Módulos</a><a href="{{ url_for('admin.grades') }}">Lançar notas</a><a href="{{ url_for('admin.rankings') }}">Classificações</a><a href="{{ url_for('admin.reports') }}">Relatórios</a><a href="{{ url_for('admin.audit') }}">Auditoria</a>{% else %}<a href="{{ url_for('student.dashboard') }}">As minhas notas</a>{% endif %}<a href="{{ url_for('auth.change_password') }}">Configurações</a></nav>
+    <nav>{% if current_user.is_admin %}<a href="{{ url_for('admin.dashboard') }}">Dashboard</a><a href="{{ url_for('admin.students') }}">Alunos</a><a href="{{ url_for('admin.modules') }}">Módulos</a><a href="{{ url_for('admin.grades') }}">Lançar notas</a><a href="{{ url_for('admin.rankings') }}">Classificações</a><a href="{{ url_for('admin.complaints') }}">Reclamações</a><a href="{{ url_for('admin.reports') }}">Relatórios</a><a href="{{ url_for('admin.audit') }}">Auditoria</a>{% else %}<a href="{{ url_for('student.dashboard') }}">As minhas notas</a>{% endif %}<a href="{{ url_for('auth.change_password') }}">Configurações</a></nav>
     <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="nav-logout">Sair da sessão</button></form>
   </aside>
   {% endif %}
   <main class="main {% if not current_user.is_authenticated %}main-public{% endif %}">
     {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
     {% block content %}{% endblock %}
+    <footer class="site-footer"><p>Em quem estão escondidos todos os tesouros da sabedoria e da ciência.</p><p class="footer-reference">Colossenses 2:3</p><p>Site Criado pela Hel Technology Service Lda</p><p>Para mais informações Ligue para o Nº Tel: 935730700</p></footer>
   </main>
 </body>
 <script>
