@@ -52,6 +52,12 @@ def test_admin_can_upload_edit_and_delete_student(client, app, tmp_path):
         assert photo_name and (tmp_path / 'profiles' / photo_name).exists()
         student_id = student.id
 
+    client.post('/logout')
+    login(client, 'carla', 'studentpass')
+    assert photo_name.encode() in client.get('/aluno/').data
+    client.post('/logout')
+    login(client, 'admin', 'adminpass123')
+
     response = client.post(f'/admin/alunos/{student_id}/editar', data={
         'full_name': 'Carla Oliveira', 'code': 'C002', 'username': 'carla.oliveira',
         'email': 'carla.oliveira@example.com', 'phone': '999999999', 'gender': 'F',
