@@ -72,15 +72,26 @@ def create_app(config_class=Config):
 
 
 def _ensure_schema():
-    columns = {column["name"] for column in inspect(db.engine).get_columns("students")}
+    table_columns = {
+        "students": {column["name"] for column in inspect(db.engine).get_columns("students")},
+        "enrollment_applications": {column["name"] for column in inspect(db.engine).get_columns("enrollment_applications")},
+    }
     statements = []
-    if "profile_photo" not in columns:
+    if "profile_photo" not in table_columns["students"]:
         statements.append("ALTER TABLE students ADD COLUMN profile_photo VARCHAR(255)")
-    if "profile_photo_data" not in columns:
+    if "profile_photo_data" not in table_columns["students"]:
         photo_type = "BYTEA" if db.engine.dialect.name == "postgresql" else "BLOB"
         statements.append(f"ALTER TABLE students ADD COLUMN profile_photo_data {photo_type}")
-    if "profile_photo_mimetype" not in columns:
+    if "profile_photo_mimetype" not in table_columns["students"]:
         statements.append("ALTER TABLE students ADD COLUMN profile_photo_mimetype VARCHAR(100)")
+    if "identity_number" not in table_columns["students"]:
+        statements.append("ALTER TABLE students ADD COLUMN identity_number VARCHAR(50)")
+    if "residence" not in table_columns["students"]:
+        statements.append("ALTER TABLE students ADD COLUMN residence VARCHAR(255)")
+    if "identity_number" not in table_columns["enrollment_applications"]:
+        statements.append("ALTER TABLE enrollment_applications ADD COLUMN identity_number VARCHAR(50)")
+    if "residence" not in table_columns["enrollment_applications"]:
+        statements.append("ALTER TABLE enrollment_applications ADD COLUMN residence VARCHAR(255)")
     if statements:
         with db.engine.begin() as connection:
             for statement in statements:

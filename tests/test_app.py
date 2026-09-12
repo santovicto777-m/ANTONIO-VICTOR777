@@ -173,7 +173,8 @@ def test_online_enrollment_is_pending_until_admin_approves(client, app):
     response = client.post('/inscricao', data={
         'full_name': 'Guilherme Mendes', 'email': 'guilherme@example.com',
         'phone': '935730700', 'course': 'Informática', 'username': 'guilherme',
-        'password': 'candidatepass', 'gender': 'Masculino',
+        'password': 'candidatepass', 'gender': 'Masculino', 'identity_number': 'BI12345',
+        'residence': 'Luanda', 'birth_date': '2000-05-20',
     })
     assert response.status_code == 302
     with app.app_context():
@@ -193,6 +194,9 @@ def test_online_enrollment_is_pending_until_admin_approves(client, app):
         assert application.status == 'APROVADA'
         assert student.code == f'AL{application_id:05d}'
         assert student.user.username == 'guilherme'
+        assert student.identity_number == 'BI12345'
+        assert student.residence == 'Luanda'
+        assert student.birth_date.strftime('%Y-%m-%d') == '2000-05-20'
 
     client.post('/logout')
     login(client, 'guilherme', 'candidatepass')

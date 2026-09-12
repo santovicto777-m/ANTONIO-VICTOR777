@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_user, logout_user
 from werkzeug.security import generate_password_hash
@@ -14,16 +15,24 @@ def enrollment():
         full_name = request.form.get("full_name", "").strip()
         email = request.form.get("email", "").strip().lower()
         phone = request.form.get("phone", "").strip()
+        identity_number = request.form.get("identity_number", "").strip()
+        residence = request.form.get("residence", "").strip()
+        birth_date_value = request.form.get("birth_date", "").strip()
         course = request.form.get("course", "").strip()
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        if not full_name or not email or not phone or not course or not username or len(password) < 8:
+        try:
+            birth_date = datetime.strptime(birth_date_value, "%Y-%m-%d").date() if birth_date_value else None
+        except ValueError:
+            birth_date = None
+        if not full_name or not email or not phone or not identity_number or not residence or not birth_date or not course or not username or len(password) < 8:
             flash("Preencha todos os campos obrigatórios e use uma password com pelo menos 8 caracteres.", "error")
         elif User.query.filter_by(username=username).first() or EnrollmentApplication.query.filter_by(username=username, status="PENDENTE").first():
             flash("Este nome de utilizador já está em uso.", "error")
         else:
             application = EnrollmentApplication(full_name=full_name, email=email, phone=phone,
-                                                birth_date=None, gender=request.form.get("gender") or None,
+                                                birth_date=birth_date, identity_number=identity_number,
+                                                residence=residence, gender=request.form.get("gender") or None,
                                                 course=course, username=username)
             application.password_hash = generate_password_hash(password)
             db.session.add(application)

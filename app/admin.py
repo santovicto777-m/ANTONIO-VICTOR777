@@ -364,6 +364,7 @@ def update_enrollment(application_id):
             code = f"AL{application.id:05d}"
             user = User(username=application.username, password_hash=application.password_hash, role="student")
             student = Student(code=code, full_name=application.full_name, birth_date=application.birth_date,
+                              identity_number=application.identity_number, residence=application.residence,
                               gender=application.gender, phone=application.phone, email=application.email, user=user)
             db.session.add(student)
             application.status = "APROVADA"
