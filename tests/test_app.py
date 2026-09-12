@@ -63,7 +63,7 @@ def test_admin_can_upload_edit_and_delete_student(client, app, tmp_path):
 
     client.post('/logout')
     login(client, 'carla', 'studentpass')
-    assert photo_name.encode() in client.get('/aluno/').data
+    assert f'/aluno/foto/{student_id}'.encode() in client.get('/aluno/').data
     client.post('/logout')
     login(client, 'admin', 'adminpass123')
 
